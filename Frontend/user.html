@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>User</title>
+</head>
+
+<body>
+
+    <h1>User Page</h1>
+
+    <!-- PROFILE -->
+    <h2>My Profile</h2>
+
+    <div id="profileBox">
+        Loading profile...
+    </div>
+
+    <button onclick="logout()">
+        Logout
+    </button>
+
+    <hr>
+
+    <!-- ADD CATEGORY -->
+    <h2>Add Category</h2>
+
+    <input id="categoryName" placeholder="Category Name" />
+
+    <button onclick="addCategory()">
+        Add Category
+    </button>
+
+    <hr>
+
+    <!-- ADD TASK -->
+    <h2>Add Task</h2>
+
+    <input id="title" placeholder="Title" />
+
+    <br><br>
+
+    <textarea id="description" placeholder="Description"></textarea>
+
+    <br><br>
+
+    <label>Category:</label>
+
+    <select id="category">
+        <option value="">
+            No Category
+        </option>
+    </select>
+
+    <br><br>
+
+    <label>Priority:</label>
+
+    <select id="priority">
+        <option value="low">
+            Low
+        </option>
+
+        <option value="medium" selected>
+            Medium
+        </option>
+
+        <option value="high">
+            High
+        </option>
+    </select>
+
+    <br><br>
+
+    <label>Deadline:</label>
+
+    <input type="datetime-local" id="deadline" />
+
+    <br><br>
+
+    <button onclick="addTask()">
+        Add Task
+    </button>
+
+    <hr>
+
+    <!-- TASK -->
+    <h2>My Tasks</h2>
+
+    <div id="taskList"></div>
+
+    <hr>
+
+    <!-- TRASH -->
+    <h2>Trash</h2>
+
+    <div id="trashList"></div>
+
+    <script src="./js/user.js"></script>
+
+</body>
+
+</html>
