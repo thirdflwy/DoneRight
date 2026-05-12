@@ -85,9 +85,9 @@ export const updateTask =
         const values = [
             data.category_id || null,
             data.title,
-            data.description,
-            data.priority,
-            data.deadline,
+            data.description || null,
+            data.priority || "medium",
+            data.deadline || null,
             taskId,
             userId,
         ];

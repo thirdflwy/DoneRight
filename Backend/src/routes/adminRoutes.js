@@ -4,6 +4,10 @@ import {
     getAllUserTasks,
     overdueTasks,
     statistics,
+    getCategories,
+    addCategory,
+    removeCategory,
+    editCategory,
 } from "../controllers/adminController.js";
 
 import {
@@ -37,5 +41,11 @@ router.get(
     isAdmin,
     statistics
 );
+
+// CATEGORIES
+router.get("/categories", authenticate, isAdmin, getCategories);
+router.post("/categories", authenticate, isAdmin, addCategory);
+router.put("/categories/:id", authenticate, isAdmin, editCategory);
+router.delete("/categories/:id", authenticate, isAdmin, removeCategory);
 
 export default router;

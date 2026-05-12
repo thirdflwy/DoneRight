@@ -70,9 +70,9 @@ export const updateUser = async (id, data) => {
     const query = `
         UPDATE users
         SET
-            username = $1,
-            email = $2,
-            password_hash = $3
+            username = COALESCE($1, username),
+            email = COALESCE($2, email),
+            password_hash = COALESCE($3, password_hash)
         WHERE id_users = $4
         RETURNING id_users, username, email
     `;

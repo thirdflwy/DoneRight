@@ -22,15 +22,15 @@ export const updateProfile = async (req, res) => {
     try {
         const { username, email, password } = req.body;
 
-        let password_hash = undefined;
+        let password_hash = null;
 
         if (password) {
             password_hash = await bcrypt.hash(password, 10);
         }
 
         const user = await updateUser(req.user.id, {
-            username,
-            email,
+            username: username || null,
+            email: email || null,
             password_hash
         });
 
