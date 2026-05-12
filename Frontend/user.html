@@ -16,6 +16,32 @@
         Loading profile...
     </div>
 
+    <div id="profileForm" style="display:none;">
+
+        <input id="profileUsername" placeholder="Username" />
+
+        <input id="profileEmail" placeholder="Email" />
+
+        <input id="profilePassword" type="password" placeholder="New Password (optional)" />
+
+        <button onclick="updateProfile()">
+            Save Profile
+        </button>
+
+        <button onclick="cancelEditProfile()">
+            Cancel
+        </button>
+
+    </div>
+
+    <button onclick="showEditProfile()">
+        Edit Profile
+    </button>
+
+    <button onclick="deleteAccount()">
+        Delete Account
+    </button>
+
     <button onclick="logout()">
         Logout
     </button>
@@ -47,9 +73,7 @@
     <label>Category:</label>
 
     <select id="category">
-        <option value="">
-            No Category
-        </option>
+        <option value="">No Category</option>
     </select>
 
     <br><br>
@@ -57,17 +81,9 @@
     <label>Priority:</label>
 
     <select id="priority">
-        <option value="low">
-            Low
-        </option>
-
-        <option value="medium" selected>
-            Medium
-        </option>
-
-        <option value="high">
-            High
-        </option>
+        <option value="low">Low</option>
+        <option value="medium" selected>Medium</option>
+        <option value="high">High</option>
     </select>
 
     <br><br>
@@ -86,6 +102,39 @@
 
     <!-- TASK -->
     <h2>My Tasks</h2>
+
+    <!-- FILTER & SORT CONTROLS -->
+    <div style="margin-bottom: 20px;">
+        <input type="text" id="searchTask" placeholder="Search tasks..." oninput="renderTasks()" />
+        
+        <select id="filterCategory" onchange="renderTasks()">
+            <option value="">All Categories</option>
+            <option value="null">No Category</option>
+            <!-- Categories will be added here -->
+        </select>
+        
+        <select id="filterPriority" onchange="renderTasks()">
+            <option value="">All Priorities</option>
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+        </select>
+        
+        <select id="filterStatus" onchange="renderTasks()">
+            <option value="">All Status</option>
+            <option value="done">Done</option>
+            <option value="pending">Not Yet</option>
+        </select>
+        
+        <select id="sortTask" onchange="renderTasks()">
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+            <option value="deadline_asc">Deadline (Closest)</option>
+            <option value="deadline_desc">Deadline (Furthest)</option>
+            <option value="priority_desc">Priority (High -> Low)</option>
+            <option value="priority_asc">Priority (Low -> High)</option>
+        </select>
+    </div>
 
     <div id="taskList"></div>
 
