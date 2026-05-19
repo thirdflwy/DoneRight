@@ -125,10 +125,29 @@ export default function Trash({ token, onLogout, onNavigateDashboard }) {
       {/* NAVBAR */}
       <nav className="dashboard-navbar">
         <div className="navbar-brand">
-          <div className="navbar-logo-icon" style={{ backgroundColor: "#ef4444" }}></div>
+          <div className="logo-icon">
+            <div className="logo-inner">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="check-icon"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={3}
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+            </div>
+          </div>
           <div>
-            <div className="navbar-title">DoneRight Sampah</div>
-            <div className="navbar-subtitle">Keranjang Sampah & Restorasi</div>
+            <div className="navbar-title">DoneRight</div>
+            <div className="navbar-subtitle">
+              Keranjang Sampah & Restorasi
+            </div>
           </div>
         </div>
         <button className="btn-logout" onClick={onLogout}>
@@ -149,27 +168,99 @@ export default function Trash({ token, onLogout, onNavigateDashboard }) {
             marginBottom: "24px",
           }}
         >
-          <button className="btn-back-dashboard" onClick={onNavigateDashboard}>
-            ← Kembali ke Dashboard
+          <button 
+            className="btn-secondary" 
+            onClick={onNavigateDashboard}
+            style={{ 
+              display: "inline-flex", 
+              alignItems: "center", 
+              gap: "8px", 
+              padding: "10px 16px",
+              background: "#ffffff",
+              border: "1px solid #e2e8f0",
+              borderRadius: "10px",
+              color: "#475569",
+              fontWeight: 600,
+              cursor: "pointer",
+              transition: "all 0.2s"
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "#f8fafc";
+              e.currentTarget.style.borderColor = "#cbd5e1";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "#ffffff";
+              e.currentTarget.style.borderColor = "#e2e8f0";
+            }}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Kembali ke Dashboard
           </button>
 
           {trashTasks.length > 0 && (
-            <div className="btn-group-row">
+            <div className="btn-group-row" style={{ gap: "10px" }}>
               <button
                 className="btn-secondary"
                 onClick={handleRestoreAll}
                 disabled={processing}
-                style={{ backgroundColor: "#ecfdf5", color: "#10b981", fontSize: "14px", fontWeight: "600" }}
+                style={{ 
+                  backgroundColor: "#ecfdf5", 
+                  color: "#10b981", 
+                  fontSize: "14px", 
+                  fontWeight: "600",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "10px 16px",
+                  borderRadius: "10px",
+                  border: "1px solid #d1fae5",
+                  cursor: "pointer",
+                  transition: "all 0.2s"
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "#d1fae5";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "#ecfdf5";
+                }}
               >
-                🔄 Pulihkan Semua
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7.89M9 11l3-3 3 3m-3-3v12" />
+                </svg>
+                Pulihkan Semua
               </button>
               <button
                 className="btn-primary"
                 onClick={handleClearAll}
                 disabled={processing}
-                style={{ backgroundColor: "#ef4444", borderColor: "#ef4444", fontSize: "14px", fontWeight: "600" }}
+                style={{ 
+                  backgroundColor: "#ef4444", 
+                  borderColor: "#ef4444", 
+                  fontSize: "14px", 
+                  fontWeight: "600",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "10px 16px",
+                  borderRadius: "10px",
+                  cursor: "pointer",
+                  transition: "all 0.2s"
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "#dc2626";
+                  e.currentTarget.style.borderColor = "#dc2626";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "#ef4444";
+                  e.currentTarget.style.borderColor = "#ef4444";
+                }}
               >
-                🗑️ Kosongkan Sampah
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Kosongkan Sampah
               </button>
             </div>
           )}
@@ -177,83 +268,130 @@ export default function Trash({ token, onLogout, onNavigateDashboard }) {
 
         {/* TRASHED TASKS BOARD */}
         <div className="board-card" style={{ marginBottom: "20px" }}>
-          <div className="board-header" style={{ marginBottom: "0" }}>
-            <div className="board-title">
-              Keranjang Sampah User ({trashTasks.length})
+          <div className="board-header" style={{ marginBottom: "20px" }}>
+            <div className="board-title" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#ef4444" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              Keranjang Sampah ({trashTasks.length})
             </div>
           </div>
-        </div>
 
-        {/* LIST */}
-        <div>
-          {loading ? (
-            <div className="empty-state">
-              <div className="empty-state-icon">🗑️</div>
-              <p>Memuat keranjang sampah...</p>
-            </div>
-          ) : trashTasks.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-state-icon" style={{ fontSize: "56px", opacity: 0.7 }}>
-                🗑️
+          {/* LIST INSIDE BOARD CARD */}
+          <div>
+            {loading ? (
+              <div className="empty-state">
+                <div className="empty-state-icon">🗑️</div>
+                <p>Memuat keranjang sampah...</p>
               </div>
-              <h3 style={{ fontSize: "18px", color: "var(--text-main)", marginTop: "12px", fontWeight: "600" }}>
-                Keranjang Sampah Kosong
-              </h3>
-              <p style={{ fontSize: "14px", color: "var(--text-muted)", marginTop: "6px" }}>
-                Tugas yang Anda hapus sementara akan tampil di sini untuk dipulihkan kembali.
-              </p>
-            </div>
-          ) : (
-            trashTasks.map((task) => {
-              const deadline = task.deadline ? new Date(task.deadline) : null;
-              return (
-                <div className="task-item" key={task.id_tasks} style={{ borderLeft: "4px solid #ef4444" }}>
-                  <div className="task-left">
-                    <h3 className="task-title" style={{ color: "#334155" }}>
-                      {task.title}
-                    </h3>
-                    {task.description && <p className="task-desc">{task.description}</p>}
-
-                    <div className="task-badges">
-                      <span className={`badge badge-${task.priority}`}>
-                        {task.priority.toUpperCase()}
-                      </span>
-                      {task.category_name && (
-                        <span className="badge badge-category">
-                          {task.category_name.charAt(0).toUpperCase() + task.category_name.slice(1)}
-                        </span>
-                      )}
-                      {deadline && (
-                        <span className="badge badge-deadline">
-                          Deadline: {deadline.toLocaleDateString("id-ID")}{" "}
-                          {deadline.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="task-right" style={{ gap: "10px", justifyContent: "center" }}>
-                    <button
-                      className="btn-detail"
-                      onClick={() => handleRestore(task.id_tasks)}
-                      disabled={processing}
-                      style={{ color: "#10b981", fontSize: "14px", fontWeight: "600" }}
-                    >
-                      Pulihkan
-                    </button>
-                    <button
-                      className="btn-detail"
-                      onClick={() => handleDeletePermanent(task.id_tasks)}
-                      disabled={processing}
-                      style={{ color: "#ef4444", fontSize: "14px", fontWeight: "600" }}
-                    >
-                      Hapus Permanen
-                    </button>
-                  </div>
+            ) : trashTasks.length === 0 ? (
+              <div className="empty-state" style={{ padding: "60px 20px" }}>
+                <div className="empty-state-icon" style={{ fontSize: "56px", opacity: 0.7 }}>
+                  🗑️
                 </div>
-              );
-            })
-          )}
+                <h3 style={{ fontSize: "18px", color: "var(--text-main)", marginTop: "12px", fontWeight: "600" }}>
+                  Keranjang Sampah Kosong
+                </h3>
+                <p style={{ fontSize: "14px", color: "var(--text-muted)", marginTop: "6px" }}>
+                  Tugas yang Anda hapus sementara akan tampil di sini untuk dipulihkan kembali.
+                </p>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                {trashTasks.map((task) => {
+                  const deadline = task.deadline ? new Date(task.deadline) : null;
+                  return (
+                    <div className="task-item" key={task.id_tasks} style={{ borderLeft: "4px solid #ef4444", margin: 0 }}>
+                      <div className="task-left">
+                        <h3 className="task-title" style={{ color: "#334155" }}>
+                          {task.title}
+                        </h3>
+                        {task.description && <p className="task-desc">{task.description}</p>}
+
+                        <div className="task-badges">
+                          <span className={`badge badge-${task.priority}`}>
+                            {task.priority.toUpperCase()}
+                          </span>
+                          {task.category_name && (
+                            <span className="badge badge-category">
+                              {task.category_name.charAt(0).toUpperCase() + task.category_name.slice(1)}
+                            </span>
+                          )}
+                          {deadline && (
+                            <span className="badge badge-deadline">
+                              Deadline: {deadline.toLocaleDateString("id-ID")}{" "}
+                              {deadline.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="task-right" style={{ gap: "8px", justifyContent: "center", flexDirection: "row", alignSelf: "center" }}>
+                        <button
+                          onClick={() => handleRestore(task.id_tasks)}
+                          disabled={processing}
+                          style={{ 
+                            background: "#ecfdf5", 
+                            border: "1px solid #d1fae5", 
+                            borderRadius: "8px", 
+                            padding: "6px 12px", 
+                            color: "#10b981", 
+                            fontSize: "13px", 
+                            fontWeight: "600",
+                            cursor: "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "4px",
+                            transition: "all 0.2s"
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = "#d1fae5";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "#ecfdf5";
+                          }}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7.89M9 11l3-3 3 3m-3-3v12" />
+                          </svg>
+                          Pulihkan
+                        </button>
+                        <button
+                          onClick={() => handleDeletePermanent(task.id_tasks)}
+                          disabled={processing}
+                          style={{ 
+                            background: "#fef2f2", 
+                            border: "1px solid #fee2e2", 
+                            borderRadius: "8px", 
+                            padding: "6px 12px", 
+                            color: "#ef4444", 
+                            fontSize: "13px", 
+                            fontWeight: "600",
+                            cursor: "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "4px",
+                            transition: "all 0.2s"
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = "#fee2e2";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "#fef2f2";
+                          }}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          Hapus Permanen
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
