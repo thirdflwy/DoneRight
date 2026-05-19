@@ -71,7 +71,7 @@ export const getCategories = async (req, res) => {
 
 export const addCategory = async (req, res) => {
     try {
-        const category = await createGlobalCategory(req.body.name);
+        const category = await createGlobalCategory(req.user.id, req.body.name);
         res.status(201).json({ message: "Category created", category });
     } catch (error) {
         console.error(error);

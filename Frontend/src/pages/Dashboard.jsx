@@ -19,8 +19,28 @@ export default function Dashboard({ token, user, onLogout, onNavigateReport, onN
 
   // Modals
   const [showTaskModal, setShowTaskModal] = useState(false);
+  const [confirmModal, setConfirmModal] = useState({
+    show: false,
+    title: "",
+    message: "",
+    onConfirm: null,
+    onCancel: null,
+    confirmText: "Ya, Hapus",
+    cancelText: "Batal",
+    isDanger: true,
+    isCategoryDelete: false,
+    onKeepTasks: null,
+    onDeleteTasks: null
+  });
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [toast, setToast] = useState({ show: false, message: "", type: "success" });
+  const showToast = (message, type = "success") => {
+    setToast({ show: true, message, type });
+    setTimeout(() => {
+      setToast({ show: false, message: "", type: "success" });
+    }, 4000);
+  };
 
   // Selected Items for modals
   const [selectedTask, setSelectedTask] = useState(null); // for Detail view
@@ -107,7 +127,7 @@ export default function Dashboard({ token, user, onLogout, onNavigateReport, onN
   const handleTaskSubmit = async (e) => {
     e.preventDefault();
     if (!taskTitle.trim() || !taskPriority || !taskDeadline) {
-      alert("Kolom dengan bintang (*) wajib diisi!");
+      showToast("Kolom dengan bintang (*) wajib diisi!", "warning");
       return;
     }
 
@@ -142,9 +162,10 @@ export default function Dashboard({ token, user, onLogout, onNavigateReport, onN
 
       setShowTaskModal(false);
       await fetchTasks();
+      showToast(editingTask ? "Tugas berhasil diperbarui!" : "Tugas baru berhasil ditambahkan!", "success");
     } catch (err) {
       console.error("Task submit error:", err);
-      alert(err.message || "Gagal menyimpan tugas.");
+      showToast(err.message || "Gagal menyimpan tugas.", "error");
     } finally {
       setTaskSubmitting(false);
     }
@@ -154,7 +175,7 @@ export default function Dashboard({ token, user, onLogout, onNavigateReport, onN
   const handleCategorySubmit = async (e) => {
     e.preventDefault();
     if (!categoryName.trim()) {
-      alert("Nama kategori wajib diisi!");
+      showToast("Nama kategori wajib diisi!", "warning");
       return;
     }
 
@@ -183,22 +204,17 @@ export default function Dashboard({ token, user, onLogout, onNavigateReport, onN
       setCategoryName("");
       await fetchCategories();
       await fetchTasks();
-      alert(editingCategory ? "Kategori berhasil diperbarui!" : "Kategori kustom baru berhasil dibuat!");
+      showToast(editingCategory ? "Kategori berhasil diperbarui!" : "Kategori kustom baru berhasil dibuat!", "success");
     } catch (err) {
       console.error("Category save error:", err);
-      alert("Terjadi kesalahan saat menyimpan kategori.");
+      showToast("Terjadi kesalahan saat menyimpan kategori.", "error");
     } finally {
       setCategorySubmitting(false);
     }
   };
 
-  // Delete Category
-  const handleDeleteCategory = async (id) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus kategori ini?")) return;
-
-    const deleteTasks = confirm("Apakah Anda juga ingin menghapus seluruh tugas di dalam kategori ini?\n\nKlik 'OK' untuk menghapus tugas.\nKlik 'Batal' untuk mempertahankan tugas (memindahkannya ke 'Tanpa Kategori').");
-    const mode = deleteTasks ? "delete_tasks" : "keep_tasks";
-
+  // Delete Category Actual
+  const executeDeleteCategory = async (id, mode) => {
     try {
       const res = await fetch(`${BASE_URL}/categories/${id}`, {
         method: "DELETE",
@@ -211,19 +227,32 @@ export default function Dashboard({ token, user, onLogout, onNavigateReport, onN
 
       if (!res.ok) throw new Error("Gagal menghapus kategori.");
 
-      alert("Kategori berhasil dihapus!");
       await fetchCategories();
       await fetchTasks();
     } catch (err) {
       console.error("Delete category error:", err);
-      alert(err.message || "Gagal menghapus kategori.");
+      showToast(err.message || "Gagal menghapus kategori.", "error");
     }
   };
 
-  // Delete Task
-  const handleDeleteTask = async (id) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus tugas ini?")) return;
+  // Delete Category
+  const handleDeleteCategory = (id) => {
+    setConfirmModal({
+      show: true,
+      title: "Hapus Kategori",
+      message: "Apakah Anda yakin ingin menghapus kategori ini? Pilih opsi di bawah untuk menentukan nasib tugas yang ada di dalamnya:",
+      confirmText: "Hapus Kategori & Seluruh Tugas",
+      cancelText: "Batal",
+      isDanger: true,
+      isCategoryDelete: true,
+      onDeleteTasks: () => executeDeleteCategory(id, "delete_tasks"),
+      onKeepTasks: () => executeDeleteCategory(id, "keep_tasks"),
+      onCancel: () => {}
+    });
+  };
 
+  // Delete Task Actual
+  const executeDeleteTask = async (id) => {
     try {
       const res = await fetch(`${BASE_URL}/tasks/${id}`, {
         method: "DELETE",
@@ -237,6 +266,21 @@ export default function Dashboard({ token, user, onLogout, onNavigateReport, onN
     } catch (err) {
       console.error("Delete task error:", err);
     }
+  };
+
+  // Delete Task
+  const handleDeleteTask = (id) => {
+    setConfirmModal({
+      show: true,
+      title: "Hapus Tugas",
+      message: "Apakah Anda yakin ingin menghapus tugas ini? Tugas ini akan dipindahkan ke keranjang sampah.",
+      confirmText: "Ya, Hapus",
+      cancelText: "Batal",
+      isDanger: true,
+      isCategoryDelete: false,
+      onConfirm: () => executeDeleteTask(id),
+      onCancel: () => {}
+    });
   };
 
   // Open modals helper
@@ -732,6 +776,23 @@ export default function Dashboard({ token, user, onLogout, onNavigateReport, onN
                 <div className="modal-title">
                   {editingTask ? "Edit Detail Tugas" : "Tambah Tugas Baru"}
                 </div>
+                <button
+                  type="button"
+                  className="btn-close-modal"
+                  onClick={() => setShowTaskModal(false)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    fontSize: "24px",
+                    color: "#94a3b8",
+                    cursor: "pointer",
+                    transition: "color 0.2s"
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = "#475569"}
+                  onMouseLeave={(e) => e.currentTarget.style.color = "#94a3b8"}
+                >
+                  &times;
+                </button>
               </div>
               <form onSubmit={handleTaskSubmit}>
                 <div className="modal-body">
@@ -828,17 +889,34 @@ export default function Dashboard({ token, user, onLogout, onNavigateReport, onN
             <div className="modal-content">
               <div className="modal-header">
                 <div className="modal-title">Detail Tugas</div>
+                <button
+                  type="button"
+                  className="btn-close-modal"
+                  onClick={() => setShowDetailModal(false)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    fontSize: "24px",
+                    color: "#94a3b8",
+                    cursor: "pointer",
+                    transition: "color 0.2s"
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = "#475569"}
+                  onMouseLeave={(e) => e.currentTarget.style.color = "#94a3b8"}
+                >
+                  &times;
+                </button>
               </div>
               <div className="modal-body">
                 <div className="detail-grid">
                   <div className="detail-item" style={{ gridColumn: "span 2" }}>
                     <span className="detail-label">Judul</span>
-                    <span className="detail-value">{selectedTask.title}</span>
+                    <span className="detail-value" style={{ fontSize: "18px", color: "var(--text-main)", fontWeight: 700 }}>{selectedTask.title}</span>
                   </div>
 
                   <div className="detail-item" style={{ gridColumn: "span 2" }}>
                     <span className="detail-label">Deskripsi</span>
-                    <span className="detail-value detail-value-span">
+                    <span className="detail-value detail-value-span" style={{ whiteSpace: "pre-line", lineHeight: 1.5 }}>
                       {selectedTask.description || "-"}
                     </span>
                   </div>
@@ -855,7 +933,9 @@ export default function Dashboard({ token, user, onLogout, onNavigateReport, onN
 
                   <div className="detail-item">
                     <span className="detail-label">Prioritas</span>
-                    <span className="detail-value">{selectedTask.priority.toUpperCase()}</span>
+                    <span className={`badge badge-${selectedTask.priority}`} style={{ width: "fit-content", marginTop: "4px", fontSize: "12px", padding: "4px 10px" }}>
+                      {selectedTask.priority.toUpperCase()}
+                    </span>
                   </div>
 
                   <div className="detail-item">
@@ -869,13 +949,15 @@ export default function Dashboard({ token, user, onLogout, onNavigateReport, onN
 
                   <div className="detail-item">
                     <span className="detail-label">Status</span>
-                    <span className="detail-value">
-                      {selectedTask.is_completed
-                        ? "SELESAI"
-                        : (selectedTask.deadline && new Date(selectedTask.deadline) < new Date()
-                          ? "TERLAMBAT"
-                          : "AKTIF")}
-                    </span>
+                    <div style={{ marginTop: "4px" }}>
+                      {selectedTask.is_completed ? (
+                        <span className="badge badge-completed" style={{ width: "fit-content", fontSize: "12px", padding: "4px 10px" }}>✓ Selesai</span>
+                      ) : (selectedTask.deadline && new Date(selectedTask.deadline) < new Date() ? (
+                        <span className="badge badge-overdue" style={{ width: "fit-content", fontSize: "12px", padding: "4px 10px" }}>⚠ Overdue</span>
+                      ) : (
+                        <span className="badge badge-pending" style={{ width: "fit-content", fontSize: "12px", padding: "4px 10px", backgroundColor: "#f8fafc", border: "1px solid #cbd5e1", color: "#64748b", fontWeight: 600 }}>Aktif</span>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -912,6 +994,27 @@ export default function Dashboard({ token, user, onLogout, onNavigateReport, onN
             <div className="modal-content" style={{ maxWidth: "420px" }}>
               <div className="modal-header">
                 <div className="modal-title">Kelola Kategori</div>
+                <button
+                  type="button"
+                  className="btn-close-modal"
+                  onClick={() => {
+                    setShowCategoryModal(false);
+                    setCategoryName("");
+                    setEditingCategory(null);
+                  }}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    fontSize: "24px",
+                    color: "#94a3b8",
+                    cursor: "pointer",
+                    transition: "color 0.2s"
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = "#475569"}
+                  onMouseLeave={(e) => e.currentTarget.style.color = "#94a3b8"}
+                >
+                  &times;
+                </button>
               </div>
               <form onSubmit={handleCategorySubmit}>
                 <div className="modal-body">
@@ -1047,6 +1150,106 @@ export default function Dashboard({ token, user, onLogout, onNavigateReport, onN
             </div>
           </div>
         )}
+        {/* CUSTOM CONFIRMATION MODAL */}
+        {confirmModal.show && (
+          <div className="modal-overlay active" style={{ zIndex: 200 }}>
+            <div className="modal-content" style={{ maxWidth: "420px" }}>
+              <div className="modal-header">
+                <div className="modal-title" style={{ color: confirmModal.isDanger ? "#ef4444" : "#0f172a" }}>
+                  {confirmModal.title}
+                </div>
+                <button
+                  type="button"
+                  className="btn-close-modal"
+                  onClick={() => setConfirmModal({ ...confirmModal, show: false })}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    fontSize: "24px",
+                    color: "#94a3b8",
+                    cursor: "pointer",
+                    transition: "color 0.2s"
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = "#475569"}
+                  onMouseLeave={(e) => e.currentTarget.style.color = "#94a3b8"}
+                >
+                  &times;
+                </button>
+              </div>
+              <div className="modal-body">
+                <p style={{ fontSize: "14px", color: "#475569", lineHeight: 1.6, margin: 0 }}>
+                  {confirmModal.message}
+                </p>
+              </div>
+              <div className="modal-footer" style={{ flexDirection: confirmModal.isCategoryDelete ? "column" : "row", gap: "10px", alignItems: "stretch", width: "100%" }}>
+                {confirmModal.isCategoryDelete ? (
+                  <>
+                    <button
+                      type="button"
+                      className="btn-hapus-modal"
+                      onClick={() => {
+                        if (confirmModal.onDeleteTasks) confirmModal.onDeleteTasks();
+                        setConfirmModal({ ...confirmModal, show: false });
+                      }}
+                      style={{ margin: 0, width: "100%", padding: "12px", justifyContent: "center" }}
+                    >
+                      🗑️ Hapus Kategori & Seluruh Tugas
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-simpan"
+                      onClick={() => {
+                        if (confirmModal.onKeepTasks) confirmModal.onKeepTasks();
+                        setConfirmModal({ ...confirmModal, show: false });
+                      }}
+                      style={{ margin: 0, width: "100%", padding: "12px", justifyContent: "center" }}
+                    >
+                      📂 Hapus Kategori Saja (Simpan Tugas)
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-batal"
+                      onClick={() => setConfirmModal({ ...confirmModal, show: false })}
+                      style={{ margin: 0, width: "100%", padding: "12px", justifyContent: "center" }}
+                    >
+                      Batal
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      className="btn-batal"
+                      onClick={() => {
+                        if (confirmModal.onCancel) confirmModal.onCancel();
+                        setConfirmModal({ ...confirmModal, show: false });
+                      }}
+                      style={{ margin: 0, padding: "10px 20px" }}
+                    >
+                      {confirmModal.cancelText}
+                    </button>
+                    <button
+                      type="button"
+                      className={confirmModal.isDanger ? "btn-hapus-modal" : "btn-simpan"}
+                      onClick={() => {
+                        if (confirmModal.onConfirm) confirmModal.onConfirm();
+                        setConfirmModal({ ...confirmModal, show: false });
+                      }}
+                      style={{ margin: 0, padding: "10px 24px" }}
+                    >
+                      {confirmModal.confirmText}
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TOAST NOTIFICATION */}
+        <div className={`toast-notification ${toast.show ? "active" : ""} ${toast.type}`}>
+          <div className="toast-message">{toast.message}</div>
+        </div>
       </div>
     </div>
   );

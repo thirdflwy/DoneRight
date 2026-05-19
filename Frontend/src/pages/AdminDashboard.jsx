@@ -15,6 +15,24 @@ export default function AdminDashboard({ token, user, onLogout, onNavigateReport
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [categoryName, setCategoryName] = useState("");
   const [categorySubmitting, setCategorySubmitting] = useState(false);
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [confirmModal, setConfirmModal] = useState({
+    show: false,
+    title: "",
+    message: "",
+    onConfirm: null,
+    onCancel: null,
+    confirmText: "Ya, Hapus",
+    cancelText: "Batal",
+    isDanger: true
+  });
+  const [toast, setToast] = useState({ show: false, message: "", type: "success" });
+  const showToast = (message, type = "success") => {
+    setToast({ show: true, message, type });
+    setTimeout(() => {
+      setToast({ show: false, message: "", type: "success" });
+    }, 4000);
+  };
 
   // Load overview data automatically
   useEffect(() => {
@@ -115,18 +133,26 @@ export default function AdminDashboard({ token, user, onLogout, onNavigateReport
     }
   };
 
-  // Create Category
+  // Submit Category
   const handleCategorySubmit = async (e) => {
     e.preventDefault();
     if (!categoryName.trim()) {
-      alert("Nama kategori wajib diisi!");
+      showToast("Nama kategori wajib diisi!", "warning");
       return;
     }
 
     setCategorySubmitting(true);
     try {
-      const res = await fetch(`${BASE_URL}/admin/categories`, {
-        method: "POST",
+      let url = `${BASE_URL}/admin/categories`;
+      let method = "POST";
+
+      if (editingCategory) {
+        url = `${BASE_URL}/admin/categories/${editingCategory.id_categories}`;
+        method = "PUT";
+      }
+
+      const res = await fetch(url, {
+        method,
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -136,22 +162,22 @@ export default function AdminDashboard({ token, user, onLogout, onNavigateReport
 
       if (!res.ok) throw new Error("Gagal menyimpan kategori.");
 
+      const isEdit = !!editingCategory;
       setShowCategoryModal(false);
+      setEditingCategory(null);
       setCategoryName("");
       await fetchCategories();
-      alert("Kategori global baru berhasil ditambahkan!");
+      showToast(isEdit ? "Kategori global berhasil diupdate!" : "Kategori global baru berhasil ditambahkan!", "success");
     } catch (err) {
       console.error("Save global category error:", err);
-      alert("Gagal menyimpan kategori global.");
+      showToast("Gagal menyimpan kategori global.", "error");
     } finally {
       setCategorySubmitting(false);
     }
   };
 
-  // Delete Category
-  const handleDeleteCategory = async (id) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus kategori global ini?")) return;
-
+  // Delete Category Actual
+  const executeDeleteCategory = async (id) => {
     try {
       const res = await fetch(`${BASE_URL}/admin/categories/${id}`, {
         method: "DELETE",
@@ -161,11 +187,25 @@ export default function AdminDashboard({ token, user, onLogout, onNavigateReport
       if (!res.ok) throw new Error("Gagal menghapus kategori.");
 
       await fetchCategories();
-      alert("Kategori global berhasil dihapus!");
+      showToast("Kategori global berhasil dihapus!", "success");
     } catch (err) {
       console.error("Delete global category error:", err);
-      alert("Gagal menghapus kategori global.");
+      showToast("Gagal menghapus kategori global.", "error");
     }
+  };
+
+  // Delete Category
+  const handleDeleteCategory = (id) => {
+    setConfirmModal({
+      show: true,
+      title: "Hapus Kategori Global",
+      message: "Apakah Anda yakin ingin menghapus kategori global ini? Kategori kustom buatan admin ini akan dihapus dari sistem.",
+      confirmText: "Ya, Hapus",
+      cancelText: "Batal",
+      isDanger: true,
+      onConfirm: () => executeDeleteCategory(id),
+      onCancel: () => {}
+    });
   };
 
   // Priority calculations
@@ -194,7 +234,24 @@ export default function AdminDashboard({ token, user, onLogout, onNavigateReport
       {/* NAVBAR */}
       <nav className="dashboard-navbar">
         <div className="navbar-brand">
-          <div className="logo-icon-admin"></div>
+          <div className="logo-icon">
+            <div className="logo-inner">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="check-icon"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={3}
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+            </div>
+          </div>
           <div>
             <div className="navbar-title">DoneRight Admin</div>
             <div className="navbar-subtitle">Admin DoneRight</div>
@@ -258,7 +315,11 @@ export default function AdminDashboard({ token, user, onLogout, onNavigateReport
                   <span className="admin-stat-value">{totalTasksCount}</span>
                   <span className="admin-stat-sub">Tugas terdaftar</span>
                 </div>
-                <div className="admin-stat-icon-circle icon-blue">📄</div>
+                <div className="admin-stat-icon-circle icon-blue">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                  </svg>
+                </div>
               </div>
 
               <div className="admin-stat-card">
@@ -267,7 +328,11 @@ export default function AdminDashboard({ token, user, onLogout, onNavigateReport
                   <span className="admin-stat-value">{completedTasksCount}</span>
                   <span className="admin-stat-sub">{completionRate}% completion rate</span>
                 </div>
-                <div className="admin-stat-icon-circle icon-green">✓</div>
+                <div className="admin-stat-icon-circle icon-green">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
               </div>
 
               <div className="admin-stat-card">
@@ -276,7 +341,11 @@ export default function AdminDashboard({ token, user, onLogout, onNavigateReport
                   <span className="admin-stat-value">{activeCount}</span>
                   <span className="admin-stat-sub">Sedang berjalan</span>
                 </div>
-                <div className="admin-stat-icon-circle icon-yellow">🕒</div>
+                <div className="admin-stat-icon-circle icon-yellow">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
               </div>
 
               <div className="admin-stat-card">
@@ -285,7 +354,11 @@ export default function AdminDashboard({ token, user, onLogout, onNavigateReport
                   <span className="admin-stat-value">{overdueCount}</span>
                   <span className="admin-stat-sub">Perlu perhatian</span>
                 </div>
-                <div className="admin-stat-icon-circle icon-red">⚠</div>
+                <div className="admin-stat-icon-circle icon-red">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
               </div>
             </div>
 
@@ -361,7 +434,7 @@ export default function AdminDashboard({ token, user, onLogout, onNavigateReport
                       allTasks.map((task) => {
                         const now = new Date();
                         const deadline = task.deadline ? new Date(task.deadline) : null;
-                        
+
                         let statusBadge = "";
                         if (task.is_completed) {
                           statusBadge = <span className="badge badge-completed">COMPLETED</span>;
@@ -448,7 +521,12 @@ export default function AdminDashboard({ token, user, onLogout, onNavigateReport
                 <div className="board-title">Kelola Kategori Tugas</div>
                 <button
                   className="btn-primary"
-                  onClick={() => setShowCategoryModal(true)}
+                  onClick={() => {
+                    setEditingCategory(null);
+                    setCategoryName("");
+                    setCategorySubmitting(false);
+                    setShowCategoryModal(true);
+                  }}
                   style={{ padding: "8px 16px", fontSize: "14px" }}
                 >
                   <span className="btn-icon-add">+</span> Tambah Kategori
@@ -480,7 +558,32 @@ export default function AdminDashboard({ token, user, onLogout, onNavigateReport
                           <span className="category-admin-type">{typeText}</span>
                           <span className="category-admin-date">Dibuat: {dateText}</span>
                         </div>
-                        {!isDefault && (
+                        <div style={{ display: "flex", gap: "8px" }}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingCategory(cat);
+                              setCategoryName(cat.name);
+                              setCategorySubmitting(false);
+                              setShowCategoryModal(true);
+                            }}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              color: "#3b82f6",
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              padding: "4px",
+                              borderRadius: "6px",
+                              transition: "background 0.2s"
+                            }}
+                            title="Edit Kategori"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                          </button>
                           <button
                             className="btn-delete-icon"
                             onClick={() => handleDeleteCategory(cat.id_categories)}
@@ -490,7 +593,7 @@ export default function AdminDashboard({ token, user, onLogout, onNavigateReport
                               <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
                             </svg>
                           </button>
-                        )}
+                        </div>
                       </div>
                     );
                   })
@@ -501,25 +604,50 @@ export default function AdminDashboard({ token, user, onLogout, onNavigateReport
         )}
       </div>
 
-      {/* MODAL: ADD GLOBAL CATEGORY */}
+      {/* MODAL: ADD / EDIT GLOBAL CATEGORY */}
       {showCategoryModal && (
         <div className="modal-overlay active">
           <div className="modal-content" style={{ maxWidth: "420px" }}>
             <div className="modal-header">
-              <div className="modal-title">Tambah Kategori Baru</div>
+              <div className="modal-title">
+                {editingCategory ? "Edit Kategori" : "Tambah Kategori Baru"}
+              </div>
+              <button
+                type="button"
+                className="btn-close-modal"
+                onClick={() => {
+                  setShowCategoryModal(false);
+                  setCategoryName("");
+                  setEditingCategory(null);
+                }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  fontSize: "24px",
+                  color: "#94a3b8",
+                  cursor: "pointer",
+                  transition: "color 0.2s"
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.color = "#475569"}
+                onMouseLeave={(e) => e.currentTarget.style.color = "#94a3b8"}
+              >
+                &times;
+              </button>
             </div>
             <form onSubmit={handleCategorySubmit}>
               <div className="modal-body">
                 <div className="form-group">
-                  <label>Nama Kategori *</label>
+                  <label style={{ fontWeight: 600, display: "block", marginBottom: "8px" }}>
+                    {editingCategory ? `Edit Nama Kategori "${editingCategory.name}" *` : "Nama Kategori *"}
+                  </label>
                   <input
                     type="text"
                     className="form-input"
                     placeholder="Masukkan nama kategori"
                     value={categoryName}
                     onChange={(e) => setCategoryName(e.target.value)}
+                    autoFocus
                     required
-                    disabled={categorySubmitting}
                   />
                 </div>
               </div>
@@ -527,7 +655,11 @@ export default function AdminDashboard({ token, user, onLogout, onNavigateReport
                 <button
                   type="button"
                   className="btn-batal"
-                  onClick={() => setShowCategoryModal(false)}
+                  onClick={() => {
+                    setShowCategoryModal(false);
+                    setEditingCategory(null);
+                    setCategoryName("");
+                  }}
                   disabled={categorySubmitting}
                 >
                   Batal
@@ -540,6 +672,69 @@ export default function AdminDashboard({ token, user, onLogout, onNavigateReport
           </div>
         </div>
       )}
+      {/* CUSTOM CONFIRMATION MODAL */}
+      {confirmModal.show && (
+        <div className="modal-overlay active" style={{ zIndex: 200 }}>
+          <div className="modal-content" style={{ maxWidth: "420px" }}>
+            <div className="modal-header">
+              <div className="modal-title" style={{ color: confirmModal.isDanger ? "#ef4444" : "#0f172a" }}>
+                {confirmModal.title}
+              </div>
+              <button
+                type="button"
+                className="btn-close-modal"
+                onClick={() => setConfirmModal({ ...confirmModal, show: false })}
+                style={{
+                  background: "none",
+                  border: "none",
+                  fontSize: "24px",
+                  color: "#94a3b8",
+                  cursor: "pointer",
+                  transition: "color 0.2s"
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.color = "#475569"}
+                onMouseLeave={(e) => e.currentTarget.style.color = "#94a3b8"}
+              >
+                &times;
+              </button>
+            </div>
+            <div className="modal-body">
+              <p style={{ fontSize: "14px", color: "#475569", lineHeight: 1.6, margin: 0 }}>
+                {confirmModal.message}
+              </p>
+            </div>
+            <div className="modal-footer" style={{ borderTop: "none", backgroundColor: "#f8fafc", padding: "16px 24px" }}>
+              <button
+                type="button"
+                className="btn-batal"
+                onClick={() => {
+                  if (confirmModal.onCancel) confirmModal.onCancel();
+                  setConfirmModal({ ...confirmModal, show: false });
+                }}
+                style={{ margin: 0, padding: "10px 20px" }}
+              >
+                {confirmModal.cancelText}
+              </button>
+              <button
+                type="button"
+                className={confirmModal.isDanger ? "btn-hapus-modal" : "btn-simpan"}
+                onClick={() => {
+                  if (confirmModal.onConfirm) confirmModal.onConfirm();
+                  setConfirmModal({ ...confirmModal, show: false });
+                }}
+                style={{ margin: 0, padding: "10px 24px" }}
+              >
+                {confirmModal.confirmText}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TOAST NOTIFICATION */}
+      <div className={`toast-notification ${toast.show ? "active" : ""} ${toast.type}`}>
+        <div className="toast-message">{toast.message}</div>
+      </div>
     </div>
   );
 }

@@ -6,6 +6,16 @@ export default function Trash({ token, onLogout, onNavigateDashboard }) {
   const [trashTasks, setTrashTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const [confirmModal, setConfirmModal] = useState({
+    show: false,
+    title: "",
+    message: "",
+    onConfirm: null,
+    onCancel: null,
+    confirmText: "Ya, Hapus",
+    cancelText: "Batal",
+    isDanger: true
+  });
 
   useEffect(() => {
     fetchTrash();
@@ -46,9 +56,8 @@ export default function Trash({ token, onLogout, onNavigateDashboard }) {
     }
   };
 
-  // Delete permanently (individual)
-  const handleDeletePermanent = async (id) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus tugas ini secara PERMANEN? Tindakan ini tidak dapat dibatalkan!")) return;
+  // Delete permanently actual
+  const executeDeletePermanent = async (id) => {
     setProcessing(true);
     try {
       const res = await fetch(`${BASE_URL}/tasks/permanent/${id}`, {
@@ -65,11 +74,22 @@ export default function Trash({ token, onLogout, onNavigateDashboard }) {
     }
   };
 
-  // Restore All Tasks
-  const handleRestoreAll = async () => {
-    if (trashTasks.length === 0) return;
-    if (!confirm("Apakah Anda yakin ingin memulihkan SEMUA tugas di keranjang sampah?")) return;
+  // Delete permanently (individual)
+  const handleDeletePermanent = (id) => {
+    setConfirmModal({
+      show: true,
+      title: "Hapus Permanen",
+      message: "Apakah Anda yakin ingin menghapus tugas ini secara PERMANEN? Tindakan ini tidak dapat dibatalkan!",
+      confirmText: "Ya, Hapus Permanen",
+      cancelText: "Batal",
+      isDanger: true,
+      onConfirm: () => executeDeletePermanent(id),
+      onCancel: () => {}
+    });
+  };
 
+  // Restore all actual
+  const executeRestoreAll = async () => {
     setProcessing(true);
     try {
       await Promise.all(
@@ -81,25 +101,30 @@ export default function Trash({ token, onLogout, onNavigateDashboard }) {
         )
       );
       await fetchTrash();
-      alert("Semua tugas berhasil dipulihkan!");
     } catch (err) {
       console.error("Restore all error:", err);
-      alert("Terjadi kesalahan saat memulihkan semua tugas.");
     } finally {
       setProcessing(false);
     }
   };
 
-  // Delete All Permanently
-  const handleClearAll = async () => {
+  // Restore All Tasks
+  const handleRestoreAll = () => {
     if (trashTasks.length === 0) return;
-    if (
-      !confirm(
-        "PERINGATAN! Apakah Anda yakin ingin menghapus SEMUA tugas di keranjang sampah secara PERMANEN?\nTindakan ini tidak dapat dibatalkan!"
-      )
-    )
-      return;
+    setConfirmModal({
+      show: true,
+      title: "Pulihkan Semua Tugas",
+      message: "Apakah Anda yakin ingin memulihkan SEMUA tugas di keranjang sampah kembali ke Dashboard?",
+      confirmText: "Ya, Pulihkan",
+      cancelText: "Batal",
+      isDanger: false,
+      onConfirm: () => executeRestoreAll(),
+      onCancel: () => {}
+    });
+  };
 
+  // Clear all actual
+  const executeClearAll = async () => {
     setProcessing(true);
     try {
       await Promise.all(
@@ -111,13 +136,26 @@ export default function Trash({ token, onLogout, onNavigateDashboard }) {
         )
       );
       await fetchTrash();
-      alert("Semua tugas berhasil dihapus secara permanen!");
     } catch (err) {
       console.error("Clear all error:", err);
-      alert("Terjadi kesalahan saat mengosongkan keranjang sampah.");
     } finally {
       setProcessing(false);
     }
+  };
+
+  // Delete All Permanently
+  const handleClearAll = () => {
+    if (trashTasks.length === 0) return;
+    setConfirmModal({
+      show: true,
+      title: "Kosongkan Tempat Sampah",
+      message: "PERINGATAN! Apakah Anda yakin ingin menghapus SEMUA tugas di keranjang sampah secara PERMANEN?\nTindakan ini tidak dapat dibatalkan!",
+      confirmText: "Ya, Hapus Semua",
+      cancelText: "Batal",
+      isDanger: true,
+      onConfirm: () => executeClearAll(),
+      onCancel: () => {}
+    });
   };
 
   return (
@@ -393,7 +431,65 @@ export default function Trash({ token, onLogout, onNavigateDashboard }) {
             )}
           </div>
         </div>
-      </div>
+      {/* CUSTOM CONFIRMATION MODAL */}
+      {confirmModal.show && (
+        <div className="modal-overlay active" style={{ zIndex: 200 }}>
+          <div className="modal-content" style={{ maxWidth: "420px" }}>
+            <div className="modal-header">
+              <div className="modal-title" style={{ color: confirmModal.isDanger ? "#ef4444" : "#0f172a" }}>
+                {confirmModal.title}
+              </div>
+              <button
+                type="button"
+                className="btn-close-modal"
+                onClick={() => setConfirmModal({ ...confirmModal, show: false })}
+                style={{
+                  background: "none",
+                  border: "none",
+                  fontSize: "24px",
+                  color: "#94a3b8",
+                  cursor: "pointer",
+                  transition: "color 0.2s"
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.color = "#475569"}
+                onMouseLeave={(e) => e.currentTarget.style.color = "#94a3b8"}
+              >
+                &times;
+              </button>
+            </div>
+            <div className="modal-body">
+              <p style={{ fontSize: "14px", color: "#475569", lineHeight: 1.6, margin: 0 }}>
+                {confirmModal.message}
+              </p>
+            </div>
+            <div className="modal-footer" style={{ borderTop: "none", backgroundColor: "#f8fafc", padding: "16px 24px" }}>
+              <button
+                type="button"
+                className="btn-batal"
+                onClick={() => {
+                  if (confirmModal.onCancel) confirmModal.onCancel();
+                  setConfirmModal({ ...confirmModal, show: false });
+                }}
+                style={{ margin: 0, padding: "10px 20px" }}
+              >
+                {confirmModal.cancelText}
+              </button>
+              <button
+                type="button"
+                className={confirmModal.isDanger ? "btn-hapus-modal" : "btn-simpan"}
+                onClick={() => {
+                  if (confirmModal.onConfirm) confirmModal.onConfirm();
+                  setConfirmModal({ ...confirmModal, show: false });
+                }}
+                style={{ margin: 0, padding: "10px 24px" }}
+              >
+                {confirmModal.confirmText}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
-  );
+  </div>
+);
 }

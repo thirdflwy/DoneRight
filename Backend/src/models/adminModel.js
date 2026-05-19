@@ -92,13 +92,13 @@ export const getGlobalCategories = async () => {
 };
 
 // CREATE GLOBAL CATEGORY
-export const createGlobalCategory = async (name) => {
+export const createGlobalCategory = async (userId, name) => {
     const query = `
-        INSERT INTO categories (name, is_global)
-        VALUES ($1, true)
+        INSERT INTO categories (user_id, name, is_global)
+        VALUES ($1, $2, true)
         RETURNING *
     `;
-    const result = await pool.query(query, [name]);
+    const result = await pool.query(query, [userId, name]);
     return result.rows[0];
 };
 
