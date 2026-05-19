@@ -35,6 +35,7 @@ export default function Dashboard({ token, user, onLogout, onNavigateReport, onN
 
   const [categoryName, setCategoryName] = useState("");
   const [categorySubmitting, setCategorySubmitting] = useState(false);
+  const [editingCategory, setEditingCategory] = useState(null);
   const [taskSubmitting, setTaskSubmitting] = useState(false);
 
   const fetchTasks = async () => {
@@ -114,7 +115,7 @@ export default function Dashboard({ token, user, onLogout, onNavigateReport, onN
     const bodyData = {
       title: taskTitle.trim(),
       description: taskDesc.trim(),
-      id_categories: taskCategory ? parseInt(taskCategory, 10) : null,
+      category_id: taskCategory ? parseInt(taskCategory, 10) : null,
       priority: taskPriority,
       deadline: taskDeadline,
     };
@@ -159,8 +160,16 @@ export default function Dashboard({ token, user, onLogout, onNavigateReport, onN
 
     setCategorySubmitting(true);
     try {
-      const res = await fetch(`${BASE_URL}/categories`, {
-        method: "POST",
+      let url = `${BASE_URL}/categories`;
+      let method = "POST";
+
+      if (editingCategory) {
+        url = `${BASE_URL}/categories/${editingCategory.id_categories}`;
+        method = "PUT";
+      }
+
+      const res = await fetch(url, {
+        method,
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -170,15 +179,44 @@ export default function Dashboard({ token, user, onLogout, onNavigateReport, onN
 
       if (!res.ok) throw new Error("Gagal menyimpan kategori.");
 
-      setShowCategoryModal(false);
+      setEditingCategory(null);
       setCategoryName("");
       await fetchCategories();
-      alert("Kategori kustom baru berhasil dibuat!");
+      await fetchTasks();
+      alert(editingCategory ? "Kategori berhasil diperbarui!" : "Kategori kustom baru berhasil dibuat!");
     } catch (err) {
       console.error("Category save error:", err);
       alert("Terjadi kesalahan saat menyimpan kategori.");
     } finally {
       setCategorySubmitting(false);
+    }
+  };
+
+  // Delete Category
+  const handleDeleteCategory = async (id) => {
+    if (!confirm("Apakah Anda yakin ingin menghapus kategori ini?")) return;
+
+    const deleteTasks = confirm("Apakah Anda juga ingin menghapus seluruh tugas di dalam kategori ini?\n\nKlik 'OK' untuk menghapus tugas.\nKlik 'Batal' untuk mempertahankan tugas (memindahkannya ke 'Tanpa Kategori').");
+    const mode = deleteTasks ? "delete_tasks" : "keep_tasks";
+
+    try {
+      const res = await fetch(`${BASE_URL}/categories/${id}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ mode }),
+      });
+
+      if (!res.ok) throw new Error("Gagal menghapus kategori.");
+
+      alert("Kategori berhasil dihapus!");
+      await fetchCategories();
+      await fetchTasks();
+    } catch (err) {
+      console.error("Delete category error:", err);
+      alert(err.message || "Gagal menghapus kategori.");
     }
   };
 
@@ -216,7 +254,7 @@ export default function Dashboard({ token, user, onLogout, onNavigateReport, onN
     setEditingTask(task);
     setTaskTitle(task.title);
     setTaskDesc(task.description || "");
-    setTaskCategory(task.id_categories || "");
+    setTaskCategory(task.category_id || "");
     setTaskPriority(task.priority);
     // Format deadline for datetime-local input
     if (task.deadline) {
@@ -247,9 +285,9 @@ export default function Dashboard({ token, user, onLogout, onNavigateReport, onN
     let matchesCategory = true;
     if (filterCategory) {
       if (filterCategory === "null") {
-        matchesCategory = !task.id_categories;
+        matchesCategory = !task.category_id;
       } else {
-        matchesCategory = task.id_categories === parseInt(filterCategory, 10);
+        matchesCategory = task.category_id === parseInt(filterCategory, 10);
       }
     }
 
@@ -272,34 +310,34 @@ export default function Dashboard({ token, user, onLogout, onNavigateReport, onN
 
     return matchesSearch && matchesCategory && matchesPriority && matchesStatus;
   })
-  .sort((a, b) => {
-    if (sortBy === "deadline") {
-      return new Date(a.deadline) - new Date(b.deadline);
-    }
+    .sort((a, b) => {
+      if (sortBy === "deadline") {
+        return new Date(a.deadline) - new Date(b.deadline);
+      }
 
-    if (sortBy === "newest") {
-      return new Date(b.created_at) - new Date(a.created_at);
-    }
+      if (sortBy === "newest") {
+        return new Date(b.created_at) - new Date(a.created_at);
+      }
 
-    const priorityOrder = {
-      high: 0,
-      medium: 1,
-      low: 2,
-    };
+      const priorityOrder = {
+        high: 0,
+        medium: 1,
+        low: 2,
+      };
 
-    return priorityOrder[a.priority] - priorityOrder[b.priority];
-  });
+      return priorityOrder[a.priority] - priorityOrder[b.priority];
+    });
 
   const groupedTasks = filteredTasks.reduce((groups, task) => {
-  const key = task.category_name || "Tanpa Kategori";
+    const key = task.category_name || "Tanpa Kategori";
 
-  if (!groups[key]) {
-    groups[key] = [];
-  }
+    if (!groups[key]) {
+      groups[key] = [];
+    }
 
-  groups[key].push(task);
+    groups[key].push(task);
 
-  return groups;
+    return groups;
   }, {});
 
   return (
@@ -307,7 +345,7 @@ export default function Dashboard({ token, user, onLogout, onNavigateReport, onN
       {/* NAVBAR */}
       <nav className="dashboard-navbar">
         <div className="navbar-brand">
-            <div className="logo-icon">
+          <div className="logo-icon">
             <div className="logo-inner">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -402,9 +440,12 @@ export default function Dashboard({ token, user, onLogout, onNavigateReport, onN
               <button
                 className="btn-primary"
                 onClick={onNavigateReport}
-                style={{ backgroundColor: "#00a854", borderColor: "#00a854", padding: "8px 16px", fontSize: "14px" }}
+                style={{ backgroundColor: "#00a854", borderColor: "#00a854", padding: "8px 16px", fontSize: "14px", display: "inline-flex", gap: "6px", alignItems: "center" }}
               >
-                <span className="btn-icon-add">📄</span> Laporan
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Laporan
               </button>
               <button
                 className="btn-secondary"
@@ -412,7 +453,10 @@ export default function Dashboard({ token, user, onLogout, onNavigateReport, onN
                 style={{ backgroundColor: "#fee2e2", color: "#b91c1c", padding: "8px 16px", fontSize: "14px", display: "inline-flex", gap: "6px", alignItems: "center" }}
                 title="Keranjang Sampah"
               >
-                <span>🗑️</span> Sampah
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Sampah
               </button>
               <button
                 className="btn-secondary"
@@ -457,9 +501,9 @@ export default function Dashboard({ token, user, onLogout, onNavigateReport, onN
               onChange={(e) => setFilterPriority(e.target.value)}
             >
               <option value="">Semua Prioritas</option>
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
               <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
             </select>
 
             <select
@@ -468,8 +512,8 @@ export default function Dashboard({ token, user, onLogout, onNavigateReport, onN
               onChange={(e) => setFilterStatus(e.target.value)}
             >
               <option value="">Semua Status</option>
-              <option value="pending">Belum Selesai</option>
               <option value="done">Selesai</option>
+              <option value="pending">Belum Selesai</option>
               <option value="overdue">Overdue</option>
             </select>
 
@@ -478,131 +522,34 @@ export default function Dashboard({ token, user, onLogout, onNavigateReport, onN
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
             >
-              <option value="deadline">Urutkan: Deadline</option>
-              <option value="priority">Urutkan: Prioritas</option>
-              <option value="newest">Urutkan: Terbaru</option>
+              <option value="deadline">Deadline</option>
+              <option value="priority">Prioritas</option>
+              <option value="newest">Terbaru</option>
             </select>
           </div>
         </div>
 
 
 
-      {/* TASKS LIST */}
-      <div id="taskListContainer">
-        {loading ? (
-          <div className="empty-state">
-            <div className="empty-state-icon">📋</div>
-            <p>Memuat tugas...</p>
-          </div>
-        ) : filteredTasks.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-state-icon">🎉</div>
-            <p>Tidak ada tugas terdaftar sesuai kriteria filter.</p>
-          </div>
-        ) : viewMode === "list" ? (
-          filteredTasks.map((task) => {
-            const deadline = task.deadline ? new Date(task.deadline) : null;
+        {/* TASKS LIST */}
+        <div id="taskListContainer">
+          {loading ? (
+            <div className="empty-state">
+              <div className="empty-state-icon">📋</div>
+              <p>Memuat tugas...</p>
+            </div>
+          ) : filteredTasks.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-state-icon">🎉</div>
+              <p>Tidak ada tugas terdaftar sesuai kriteria filter.</p>
+            </div>
+          ) : viewMode === "list" ? (
+            filteredTasks.map((task) => {
+              const deadline = task.deadline ? new Date(task.deadline) : null;
+              const now = new Date();
+              const isOverdue = !task.is_completed && deadline && deadline < now;
 
-            return (
-              <div className="task-item" key={task.id_tasks}>
-                <div className="task-left">
-                  <div className="task-title-row">
-                    <div
-                      className={`todo-checkbox ${task.is_completed ? "checked" : ""}`}
-                      onClick={() =>
-                        handleToggleCompleted(task.id_tasks)
-                      }
-                    ></div>
-
-                    <h3 className={`task-title ${task.is_completed ? "completed" : ""}`}>
-                      {task.title}
-                    </h3>
-                  </div>
-
-                  {task.description && (
-                    <p className="task-desc">{task.description}</p>
-                  )}
-
-                  <div className="task-badges">
-                    <span className={`badge badge-${task.priority}`}>
-                      {task.priority.toUpperCase()}
-                    </span>
-
-                    {task.category_name && (
-                      <span className="badge badge-category">
-                        {task.category_name}
-                      </span>
-                    )}
-
-                    {deadline && (
-                      <span className="badge badge-deadline">
-                        Deadline:{" "}
-                        {deadline.toLocaleDateString("id-ID")}
-                      </span>
-                    )}
-
-                    {task.is_completed && (
-                      <span className="badge badge-completed">
-                        ✓ Selesai
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="task-right">
-                  <button
-                    className="btn-detail"
-                    onClick={() => {
-                      setSelectedTask(task);
-                      setShowDetailModal(true);
-                    }}
-                  >
-                    Detail
-                  </button>
-                </div>
-              </div>
-            );
-          })
-        ) : (
-          Object.entries(groupedTasks).map(([category, categoryTasks]) => (
-            <div
-              key={category}
-              style={{
-                background: "white",
-                borderRadius: "16px",
-                padding: "20px",
-                marginBottom: "20px",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  marginBottom: "16px",
-                  borderBottom: "1px solid #e5e7eb",
-                  paddingBottom: "10px",
-                }}
-              >
-                <h3 style={{ fontSize: "18px", fontWeight: 700 }}>
-                  {category}
-                </h3>
-
-                <span
-                  style={{
-                    background: "#e0e7ff",
-                    color: "#4338ca",
-                    padding: "4px 12px",
-                    borderRadius: "999px",
-                    fontSize: "13px",
-                    fontWeight: 600,
-                  }}
-                >
-                  {categoryTasks.length} tugas
-                </span>
-              </div>
-
-              {categoryTasks.map((task) => (
+              return (
                 <div className="task-item" key={task.id_tasks}>
                   <div className="task-left">
                     <div className="task-title-row">
@@ -621,241 +568,485 @@ export default function Dashboard({ token, user, onLogout, onNavigateReport, onN
                     {task.description && (
                       <p className="task-desc">{task.description}</p>
                     )}
+
+                    <div className="task-badges">
+                      <span className={`badge badge-${task.priority}`}>
+                        {task.priority.toUpperCase()}
+                      </span>
+
+                      {task.category_name && (
+                        <span className="badge badge-category">
+                          {task.category_name}
+                        </span>
+                      )}
+
+                      {deadline && (
+                        <span className="badge badge-deadline">
+                          Deadline:{" "}
+                          {deadline.toLocaleDateString("id-ID")}
+                        </span>
+                      )}
+
+                      {task.is_completed && (
+                        <span className="badge badge-completed">
+                          ✓ Selesai
+                        </span>
+                      )}
+
+                      {isOverdue && (
+                        <span className="badge badge-overdue">
+                          ⚠ Overdue
+                        </span>
+                      )}
+                    </div>
                   </div>
 
-                  <button
-                    className="btn-detail"
-                    onClick={() => {
-                      setSelectedTask(task);
-                      setShowDetailModal(true);
+                  <div className="task-right">
+                    <button
+                      className="btn-detail"
+                      onClick={() => {
+                        setSelectedTask(task);
+                        setShowDetailModal(true);
+                      }}
+                    >
+                      Detail
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            Object.entries(groupedTasks).map(([category, categoryTasks]) => (
+              <div
+                key={category}
+                style={{
+                  background: "white",
+                  borderRadius: "16px",
+                  padding: "20px",
+                  marginBottom: "20px",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    marginBottom: "16px",
+                    borderBottom: "1px solid #e5e7eb",
+                    paddingBottom: "10px",
+                  }}
+                >
+                  <h3 style={{ fontSize: "18px", fontWeight: 700 }}>
+                    {category}
+                  </h3>
+
+                  <span
+                    style={{
+                      background: "#e0e7ff",
+                      color: "#4338ca",
+                      padding: "4px 12px",
+                      borderRadius: "999px",
+                      fontSize: "13px",
+                      fontWeight: 600,
                     }}
                   >
-                    Detail
+                    {categoryTasks.length} tugas
+                  </span>
+                </div>
+
+                {categoryTasks.map((task) => {
+                  const deadline = task.deadline ? new Date(task.deadline) : null;
+                  const now = new Date();
+                  const isOverdue = !task.is_completed && deadline && deadline < now;
+
+                  return (
+                    <div className="task-item" key={task.id_tasks}>
+                      <div className="task-left">
+                        <div className="task-title-row">
+                          <div
+                            className={`todo-checkbox ${task.is_completed ? "checked" : ""}`}
+                            onClick={() =>
+                              handleToggleCompleted(task.id_tasks)
+                            }
+                          ></div>
+
+                          <h3 className={`task-title ${task.is_completed ? "completed" : ""}`}>
+                            {task.title}
+                          </h3>
+                        </div>
+
+                        {task.description && (
+                          <p className="task-desc">{task.description}</p>
+                        )}
+
+                        <div className="task-badges">
+                          <span className={`badge badge-${task.priority}`}>
+                            {task.priority.toUpperCase()}
+                          </span>
+
+                          {deadline && (
+                            <span className="badge badge-deadline">
+                              Deadline:{" "}
+                              {deadline.toLocaleDateString("id-ID")}
+                            </span>
+                          )}
+
+                          {task.is_completed && (
+                            <span className="badge badge-completed">
+                              ✓ Selesai
+                            </span>
+                          )}
+
+                          {isOverdue && (
+                            <span className="badge badge-overdue">
+                              ⚠ Overdue
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="task-right">
+                        <button
+                          className="btn-detail"
+                          onClick={() => {
+                            setSelectedTask(task);
+                            setShowDetailModal(true);
+                          }}
+                        >
+                          Detail
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* MODAL: ADD / EDIT TASK */}
+        {showTaskModal && (
+          <div className="modal-overlay active">
+            <div className="modal-content">
+              <div className="modal-header">
+                <div className="modal-title">
+                  {editingTask ? "Edit Detail Tugas" : "Tambah Tugas Baru"}
+                </div>
+              </div>
+              <form onSubmit={handleTaskSubmit}>
+                <div className="modal-body">
+                  <div className="form-group">
+                    <label>Judul Tugas *</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="Masukkan judul tugas"
+                      value={taskTitle}
+                      onChange={(e) => setTaskTitle(e.target.value)}
+                      required
+                      disabled={taskSubmitting}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Deskripsi</label>
+                    <textarea
+                      className="form-input"
+                      placeholder="Deskripsi tugas (opsional)"
+                      style={{ height: "100px", resize: "vertical" }}
+                      value={taskDesc}
+                      onChange={(e) => setTaskDesc(e.target.value)}
+                      disabled={taskSubmitting}
+                    ></textarea>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Kategori</label>
+                    <select
+                      className="form-input"
+                      value={taskCategory}
+                      onChange={(e) => setTaskCategory(e.target.value)}
+                      disabled={taskSubmitting}
+                    >
+                      <option value="">Tanpa Kategori</option>
+                      {categories.map((cat) => (
+                        <option key={cat.id_categories} value={cat.id_categories}>
+                          {cat.name.charAt(0).toUpperCase() + cat.name.slice(1)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Prioritas *</label>
+                    <select
+                      className="form-input"
+                      value={taskPriority}
+                      onChange={(e) => setTaskPriority(e.target.value)}
+                      required
+                      disabled={taskSubmitting}
+                    >
+                      <option value="high">High</option>
+                      <option value="medium">Medium</option>
+                      <option value="low">Low</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Deadline *</label>
+                    <input
+                      type="datetime-local"
+                      className="form-input"
+                      value={taskDeadline}
+                      onChange={(e) => setTaskDeadline(e.target.value)}
+                      required
+                      disabled={taskSubmitting}
+                    />
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button
+                    type="button"
+                    className="btn-batal"
+                    onClick={() => setShowTaskModal(false)}
+                    disabled={taskSubmitting}
+                  >
+                    Batal
+                  </button>
+                  <button type="submit" className="btn-simpan" disabled={taskSubmitting}>
+                    {taskSubmitting ? "Menyimpan..." : "Simpan"}
                   </button>
                 </div>
-              ))}
+              </form>
             </div>
-          ))
+          </div>
         )}
-      </div>
 
-      {/* MODAL: ADD / EDIT TASK */}
-      {showTaskModal && (
-        <div className="modal-overlay active">
-          <div className="modal-content">
-            <div className="modal-header">
-              <div className="modal-title">
-                {editingTask ? "Edit Detail Tugas" : "Tambah Tugas Baru"}
+        {/* MODAL: DETAIL VIEW */}
+        {showDetailModal && selectedTask && (
+          <div className="modal-overlay active">
+            <div className="modal-content">
+              <div className="modal-header">
+                <div className="modal-title">Detail Tugas</div>
               </div>
-            </div>
-            <form onSubmit={handleTaskSubmit}>
               <div className="modal-body">
-                <div className="form-group">
-                  <label>Judul Tugas *</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="Masukkan judul tugas"
-                    value={taskTitle}
-                    onChange={(e) => setTaskTitle(e.target.value)}
-                    required
-                    disabled={taskSubmitting}
-                  />
-                </div>
+                <div className="detail-grid">
+                  <div className="detail-item" style={{ gridColumn: "span 2" }}>
+                    <span className="detail-label">Judul</span>
+                    <span className="detail-value">{selectedTask.title}</span>
+                  </div>
 
-                <div className="form-group">
-                  <label>Deskripsi</label>
-                  <textarea
-                    className="form-input"
-                    placeholder="Deskripsi tugas (opsional)"
-                    style={{ height: "100px", resize: "vertical" }}
-                    value={taskDesc}
-                    onChange={(e) => setTaskDesc(e.target.value)}
-                    disabled={taskSubmitting}
-                  ></textarea>
-                </div>
+                  <div className="detail-item" style={{ gridColumn: "span 2" }}>
+                    <span className="detail-label">Deskripsi</span>
+                    <span className="detail-value detail-value-span">
+                      {selectedTask.description || "-"}
+                    </span>
+                  </div>
 
-                <div className="form-group">
-                  <label>Kategori</label>
-                  <select
-                    className="form-input"
-                    value={taskCategory}
-                    onChange={(e) => setTaskCategory(e.target.value)}
-                    disabled={taskSubmitting}
-                  >
-                    <option value="">Tanpa Kategori</option>
-                    {categories.map((cat) => (
-                      <option key={cat.id_categories} value={cat.id_categories}>
-                        {cat.name.charAt(0).toUpperCase() + cat.name.slice(1)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label>Prioritas *</label>
-                  <select
-                    className="form-input"
-                    value={taskPriority}
-                    onChange={(e) => setTaskPriority(e.target.value)}
-                    required
-                    disabled={taskSubmitting}
-                  >
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label>Deadline *</label>
-                  <input
-                    type="datetime-local"
-                    className="form-input"
-                    value={taskDeadline}
-                    onChange={(e) => setTaskDeadline(e.target.value)}
-                    required
-                    disabled={taskSubmitting}
-                  />
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="btn-batal"
-                  onClick={() => setShowTaskModal(false)}
-                  disabled={taskSubmitting}
-                >
-                  Batal
-                </button>
-                <button type="submit" className="btn-simpan" disabled={taskSubmitting}>
-                  {taskSubmitting ? "Menyimpan..." : "Simpan"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: DETAIL VIEW */}
-      {showDetailModal && selectedTask && (
-        <div className="modal-overlay active">
-          <div className="modal-content">
-            <div className="modal-header">
-              <div className="modal-title">Detail Tugas</div>
-            </div>
-            <div className="modal-body">
-              <div className="detail-grid">
-                <div className="detail-item" style={{ gridColumn: "span 2" }}>
-                  <span className="detail-label">Judul</span>
-                  <span className="detail-value">{selectedTask.title}</span>
-                </div>
-
-                <div className="detail-item" style={{ gridColumn: "span 2" }}>
-                  <span className="detail-label">Deskripsi</span>
-                  <span className="detail-value detail-value-span">
-                    {selectedTask.description || "-"}
-                  </span>
-                </div>
-
-                <div className="detail-item">
-                  <span className="detail-label">Kategori</span>
-                  <span className="detail-value">
-                    {selectedTask.category_name
-                      ? selectedTask.category_name.charAt(0).toUpperCase() +
+                  <div className="detail-item">
+                    <span className="detail-label">Kategori</span>
+                    <span className="detail-value">
+                      {selectedTask.category_name
+                        ? selectedTask.category_name.charAt(0).toUpperCase() +
                         selectedTask.category_name.slice(1)
-                      : "-"}
-                  </span>
-                </div>
+                        : "-"}
+                    </span>
+                  </div>
 
-                <div className="detail-item">
-                  <span className="detail-label">Prioritas</span>
-                  <span className="detail-value">{selectedTask.priority.toUpperCase()}</span>
-                </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Prioritas</span>
+                    <span className="detail-value">{selectedTask.priority.toUpperCase()}</span>
+                  </div>
 
-                <div className="detail-item">
-                  <span className="detail-label">Deadline</span>
-                  <span className="detail-value">
-                    {selectedTask.deadline
-                      ? new Date(selectedTask.deadline).toLocaleString("id-ID")
-                      : "-"}
-                  </span>
-                </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Deadline</span>
+                    <span className="detail-value">
+                      {selectedTask.deadline
+                        ? new Date(selectedTask.deadline).toLocaleString("id-ID")
+                        : "-"}
+                    </span>
+                  </div>
 
-                <div className="detail-item">
-                  <span className="detail-label">Status</span>
-                  <span className="detail-value">
-                    {selectedTask.is_completed ? "SELESAI" : "AKTIF"}
-                  </span>
-                </div>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button
-                type="button"
-                className="btn-hapus-modal"
-                onClick={() => handleDeleteTask(selectedTask.id_tasks)}
-              >
-                Hapus
-              </button>
-              <button
-                type="button"
-                className="btn-batal"
-                onClick={() => setShowDetailModal(false)}
-              >
-                Tutup
-              </button>
-              <button
-                type="button"
-                className="btn-simpan"
-                onClick={() => openEditTask(selectedTask)}
-              >
-                Edit
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: ADD CUSTOM CATEGORY */}
-      {showCategoryModal && (
-        <div className="modal-overlay active">
-          <div className="modal-content" style={{ maxWidth: "400px" }}>
-            <div className="modal-header">
-              <div className="modal-title">Tambah Kategori Baru</div>
-            </div>
-            <form onSubmit={handleCategorySubmit}>
-              <div className="modal-body">
-                <div className="form-group">
-                  <label>Nama Kategori *</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="Masukkan nama kategori"
-                    value={categoryName}
-                    onChange={(e) => setCategoryName(e.target.value)}
-                    required
-                    disabled={categorySubmitting}
-                  />
+                  <div className="detail-item">
+                    <span className="detail-label">Status</span>
+                    <span className="detail-value">
+                      {selectedTask.is_completed
+                        ? "SELESAI"
+                        : (selectedTask.deadline && new Date(selectedTask.deadline) < new Date()
+                          ? "TERLAMBAT"
+                          : "AKTIF")}
+                    </span>
+                  </div>
                 </div>
               </div>
               <div className="modal-footer">
                 <button
                   type="button"
-                  className="btn-batal"
-                  onClick={() => setShowCategoryModal(false)}
-                  disabled={categorySubmitting}
+                  className="btn-hapus-modal"
+                  onClick={() => handleDeleteTask(selectedTask.id_tasks)}
                 >
-                  Batal
+                  Hapus
                 </button>
-                <button type="submit" className="btn-simpan" disabled={categorySubmitting}>
-                  {categorySubmitting ? "Menyimpan..." : "Simpan"}
+                <button
+                  type="button"
+                  className="btn-batal"
+                  onClick={() => setShowDetailModal(false)}
+                >
+                  Tutup
+                </button>
+                <button
+                  type="button"
+                  className="btn-simpan"
+                  onClick={() => openEditTask(selectedTask)}
+                >
+                  Edit
                 </button>
               </div>
-            </form>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* MODAL: ADD CUSTOM CATEGORY */}
+        {showCategoryModal && (
+          <div className="modal-overlay active">
+            <div className="modal-content" style={{ maxWidth: "420px" }}>
+              <div className="modal-header">
+                <div className="modal-title">Kelola Kategori</div>
+              </div>
+              <form onSubmit={handleCategorySubmit}>
+                <div className="modal-body">
+                  <div className="form-group" style={{ marginBottom: "20px" }}>
+                    <label style={{ fontWeight: 600, display: "block", marginBottom: "8px" }}>
+                      {editingCategory ? `Edit Kategori "${editingCategory.name}" *` : "Tambah Kategori Baru *"}
+                    </label>
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="Masukkan nama kategori"
+                        value={categoryName}
+                        onChange={(e) => setCategoryName(e.target.value)}
+                        required
+                        disabled={categorySubmitting}
+                        style={{ margin: 0, flex: 1 }}
+                      />
+                      <button type="submit" className="btn-simpan" disabled={categorySubmitting} style={{ padding: "0 20px" }}>
+                        {categorySubmitting ? "..." : editingCategory ? "Simpan" : "Tambah"}
+                      </button>
+                      {editingCategory && (
+                        <button
+                          type="button"
+                          className="btn-batal"
+                          onClick={() => {
+                            setEditingCategory(null);
+                            setCategoryName("");
+                          }}
+                          style={{ padding: "0 15px", margin: 0 }}
+                        >
+                          Batal
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <hr style={{ margin: "20px 0", border: "0", borderTop: "1px solid #e2e8f0" }} />
+
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label style={{ fontWeight: 600, display: "block", marginBottom: "12px" }}>Daftar Kategori Kustom</label>
+                    {categories.filter(cat => !cat.is_global).length === 0 ? (
+                      <p style={{ fontSize: "14px", color: "#64748b", fontStyle: "italic", textAlign: "center", margin: "10px 0" }}>Belum ada kategori kustom.</p>
+                    ) : (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxHeight: "180px", overflowY: "auto", paddingRight: "4px" }}>
+                        {categories.filter(cat => !cat.is_global).map((cat) => (
+                          <div
+                            key={cat.id_categories}
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              padding: "10px 14px",
+                              background: "#f8fafc",
+                              borderRadius: "10px",
+                              border: "1px solid #e2e8f0",
+                              transition: "all 0.2s"
+                            }}
+                          >
+                            <span style={{ fontSize: "14px", fontWeight: 500, color: "#1e293b" }}>
+                              {cat.name.charAt(0).toUpperCase() + cat.name.slice(1)}
+                            </span>
+                            <div style={{ display: "flex", gap: "4px" }}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingCategory(cat);
+                                  setCategoryName(cat.name);
+                                }}
+                                style={{
+                                  background: "none",
+                                  border: "none",
+                                  color: "#3b82f6",
+                                  cursor: "pointer",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  padding: "4px",
+                                  borderRadius: "6px",
+                                  transition: "background 0.2s"
+                                }}
+                                title="Edit Kategori"
+                                onMouseEnter={(e) => e.currentTarget.style.background = "#dbeafe"}
+                                onMouseLeave={(e) => e.currentTarget.style.background = "none"}
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+                                </svg>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteCategory(cat.id_categories)}
+                                style={{
+                                  background: "none",
+                                  border: "none",
+                                  color: "#ef4444",
+                                  cursor: "pointer",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  padding: "4px",
+                                  borderRadius: "6px",
+                                  transition: "background 0.2s"
+                                }}
+                                title="Hapus Kategori"
+                                onMouseEnter={(e) => e.currentTarget.style.background = "#fee2e2"}
+                                onMouseLeave={(e) => e.currentTarget.style.background = "none"}
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="modal-footer" style={{ borderTop: "1px solid #e2e8f0", paddingTop: "15px", marginTop: "15px" }}>
+                  <button
+                    type="button"
+                    className="btn-batal"
+                    onClick={() => {
+                      setShowCategoryModal(false);
+                      setCategoryName("");
+                      setEditingCategory(null);
+                    }}
+                    style={{ width: "100%", margin: 0 }}
+                  >
+                    Tutup
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import {
     getCategories,
     addCategory,
     removeCategory,
+    editCategory,
 } from "../controllers/categoryController.js";
 
 import {
@@ -32,6 +33,13 @@ router.delete(
     "/:id",
     authenticate,
     removeCategory
+);
+
+// UPDATE CATEGORY
+router.put(
+    "/:id",
+    authenticate,
+    editCategory
 );
 
 export default router;

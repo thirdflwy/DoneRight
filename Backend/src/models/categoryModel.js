@@ -117,3 +117,29 @@ export const deleteCategory =
             client.release();
         }
     };
+
+// UPDATE CATEGORY
+export const updateCategory =
+    async (
+        categoryId,
+        userId,
+        name
+    ) => {
+        const query = `
+      UPDATE categories
+      SET name = $1
+      WHERE
+        id_categories = $2
+        AND user_id = $3
+      RETURNING *
+    `;
+
+        const result =
+            await pool.query(query, [
+                name,
+                categoryId,
+                userId,
+            ]);
+
+        return result.rows[0];
+    };
