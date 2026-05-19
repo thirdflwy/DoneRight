@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laporan Produktivitas - DoneRight</title>
+    <link rel="stylesheet" href="./css/styles.css">
+    <style>
+        .report-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 28px;
+        }
+        .btn-back-dashboard {
+            background-color: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+        .btn-back-dashboard:hover {
+            background-color: #f1f5f9;
+            transform: translateX(-2px);
+        }
+        .report-loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+        }
+        .report-content {
+            display: none;
+        }
+        .report-content.active {
+            display: block;
+        }
+        .big-productivity-card {
+            background: linear-gradient(135deg, #7c3aed, #a855f7);
+            color: white;
+            border-radius: 16px;
+            padding: 32px;
+            text-align: center;
+            margin-bottom: 28px;
+            box-shadow: 0 10px 15px -3px rgba(124, 58, 237, 0.2);
+        }
+        .big-prod-value {
+            font-size: 64px;
+            font-weight: 800;
+            line-height: 1;
+            margin-bottom: 12px;
+        }
+        .big-prod-label {
+            font-size: 16px;
+            font-weight: 500;
+            opacity: 0.9;
+        }
+        .report-action-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- NAVBAR -->
+    <nav class="dashboard-navbar">
+        <div class="navbar-brand">
+            <div class="navbar-logo-icon"></div>
+            <div>
+                <div class="navbar-title">DoneRight Laporan</div>
+                <div class="navbar-subtitle">Analisis Performa Produktivitas</div>
+            </div>
+        </div>
+        <button class="btn-logout" onclick="handleLogout()">Logout</button>
+    </nav>
+
+    <!-- MAIN CONTAINER -->
+    <div class="dashboard-container" style="max-width: 720px;">
+        
+        <!-- HEADER BUTTON ROW -->
+        <div class="report-header-row">
+            <button class="btn-back-dashboard" onclick="window.location.href='dashboard.html'">
+                ← Kembali ke Dashboard
+            </button>
+        </div>
+
+        <!-- LOADING INDICATOR -->
+        <div id="reportLoading" class="report-loading">
+            <div style="font-size: 32px; margin-bottom: 12px;">📊</div>
+            <p>Menganalisis performa tugas Anda...</p>
+        </div>
+
+        <!-- REPORT CARD PANELS -->
+        <div id="reportContent" class="report-content">
+            
+            <!-- BIG PRODUCTIVITY RATE banner -->
+            <div class="big-productivity-card">
+                <div class="big-prod-label">Productivity Rate Anda</div>
+                <div class="big-prod-value" id="prodPercent">0%</div>
+                <div class="progress-bar-container" style="background-color: rgba(255,255,255,0.2); height: 10px; margin-top: 18px;">
+                    <div class="progress-bar-fill" id="prodBarFill" style="background-color: white; width: 0%;"></div>
+                </div>
+            </div>
+
+            <!-- METRIC GRID -->
+            <div class="admin-stats-grid" style="margin-bottom: 28px;">
+                <!-- Total Tugas -->
+                <div class="admin-stat-card">
+                    <div class="admin-stat-left">
+                        <span class="admin-stat-label">Total Tugas</span>
+                        <span class="admin-stat-value" id="userTotalTasks">0</span>
+                        <span class="admin-stat-sub">Tugas Anda terdaftar</span>
+                    </div>
+                    <div class="admin-stat-icon-circle icon-blue">📄</div>
+                </div>
+
+                <!-- Selesai -->
+                <div class="admin-stat-card">
+                    <div class="admin-stat-left">
+                        <span class="admin-stat-label">Tugas Selesai</span>
+                        <span class="admin-stat-value" id="userCompletedTasks">0</span>
+                        <span class="admin-stat-sub">Berhasil diselesaikan</span>
+                    </div>
+                    <div class="admin-stat-icon-circle icon-green">✓</div>
+                </div>
+
+                <!-- Tepat Waktu -->
+                <div class="admin-stat-card">
+                    <div class="admin-stat-left">
+                        <span class="admin-stat-label">Tepat Waktu</span>
+                        <span class="admin-stat-value" id="userOnTimeTasks">0</span>
+                        <span class="admin-stat-sub">Sebelum deadline</span>
+                    </div>
+                    <div class="admin-stat-icon-circle icon-yellow">🕒</div>
+                </div>
+
+                <!-- Terlambat / Overdue -->
+                <div class="admin-stat-card">
+                    <div class="admin-stat-left">
+                        <span class="admin-stat-label">Terlambat</span>
+                        <span class="admin-stat-value" id="userOverdueTasks">0</span>
+                        <span class="admin-stat-sub">Melewati deadline</span>
+                    </div>
+                    <div class="admin-stat-icon-circle icon-red">⚠</div>
+                </div>
+            </div>
+
+            <!-- ACTION CARD TO DOWNLOAD -->
+            <div class="report-action-card">
+                <h3 style="font-size: 18px; font-weight: 600; color: var(--text-main); margin-bottom: 8px;">Unduh Laporan Format PDF</h3>
+                <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px;">Dapatkan dokumen PDF resmi yang memuat rincian statistik tugas, kategori, dan timeline performa produktivitas Anda.</p>
+                <button class="btn-primary" onclick="downloadPDFReport()" style="background-color: #00a854; border-color: #00a854; width: 100%; padding: 12px; font-size: 16px; font-weight: 600;" id="downloadBtn">
+                    📄 Unduh Laporan PDF
+                </button>
+            </div>
+
+        </div>
+
+    </div>
+
+    <script src="./js/report_user.js"></script>
+</body>
+</html>

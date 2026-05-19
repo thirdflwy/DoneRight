@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - DoneRight</title>
+    <link rel="stylesheet" href="./css/styles.css">
+</head>
+<body>
+
+    <!-- NAVBAR -->
+    <nav class="dashboard-navbar">
+        <div class="navbar-brand">
+            <div class="navbar-logo-icon"></div>
+            <div>
+                <div class="navbar-title">DoneRight</div>
+                <div class="navbar-subtitle" id="welcomeUser">Selamat datang, Pengguna</div>
+            </div>
+        </div>
+        <button class="btn-logout" onclick="handleLogout()">Logout</button>
+    </nav>
+
+    <!-- MAIN CONTAINER -->
+    <div class="dashboard-container">
+        
+        <!-- PROGRESS BANNER -->
+        <div class="progress-banner">
+            <div class="progress-banner-title">Progress Penyelesaian Tugas</div>
+            <div class="progress-bar-container">
+                <div class="progress-bar-fill" id="progressBarFill" style="width: 0%;"></div>
+            </div>
+            <div class="progress-stats">
+                <span id="progressText">0 dari 0 tugas selesai</span>
+                <span class="progress-percentage" id="progressPercent">0%</span>
+            </div>
+        </div>
+
+        <!-- DAFTAR TUGAS CARD -->
+        <div class="board-card">
+            <div class="board-header">
+                <div class="board-title">Daftar Tugas</div>
+                <div class="btn-group-row">
+                    <button class="btn-primary" onclick="window.location.href='report_user.html'" style="background-color: #00a854; border-color: #00a854; padding: 8px 16px; font-size: 14px;">
+                        <span class="btn-icon-add">📄</span> Laporan
+                    </button>
+                    <button class="btn-secondary" onclick="openCategoryModal()" style="background-color: #f1f5f9; color: #475569;">
+                        <span class="btn-icon-add">+</span> Kategori
+                    </button>
+                    <button class="btn-primary" onclick="openAddTaskModal()" style="padding: 8px 16px; font-size: 14px;">
+                        <span class="btn-icon-add">+</span> Tambah Tugas
+                    </button>
+                </div>
+            </div>
+
+            <!-- FILTERS -->
+            <div class="filters-grid">
+                <input type="text" id="searchTask" class="filter-input" placeholder="Cari tugas..." oninput="handleFilterChange()">
+                
+                <select id="filterCategory" class="filter-input" onchange="handleFilterChange()">
+                    <option value="">Semua Kategori</option>
+                    <option value="null">Tanpa Kategori</option>
+                </select>
+                
+                <select id="filterPriority" class="filter-input" onchange="handleFilterChange()">
+                    <option value="">Semua Prioritas</option>
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                </select>
+                
+                <select id="filterStatus" class="filter-input" onchange="handleFilterChange()">
+                    <option value="">Semua Status</option>
+                    <option value="pending">Belum Selesai</option>
+                    <option value="done">Selesai</option>
+                    <option value="overdue">Overdue</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- TASKS LIST -->
+        <div id="taskListContainer">
+            <!-- Dynamically populated -->
+            <div class="empty-state">
+                <div class="empty-state-icon">📋</div>
+                <p>Memuat tugas...</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- MODAL TAMBAH / EDIT TUGAS -->
+    <div class="modal-overlay" id="taskModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="taskModalTitle">Tambah Tugas Baru</div>
+            </div>
+            <form id="taskForm" onsubmit="handleTaskSubmit(event)">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="taskTitle">Judul Tugas *</label>
+                        <input type="text" id="taskTitle" class="form-input" placeholder="Masukkan judul tugas" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="taskDescription">Deskripsi</label>
+                        <textarea id="taskDescription" class="form-input" placeholder="Deskripsi tugas (opsional)" style="height: 100px; resize: vertical;"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="taskCategory">Kategori</label>
+                        <select id="taskCategory" class="form-input">
+                            <option value="">Tanpa Kategori</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="taskPriority">Prioritas *</label>
+                        <select id="taskPriority" class="form-input" required>
+                            <option value="low">Low</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="high">High</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="taskDeadline">Deadline *</label>
+                        <input type="datetime-local" id="taskDeadline" class="form-input" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-batal" onclick="closeTaskModal()">Batal</button>
+                    <button type="submit" class="btn-simpan" id="taskSubmitBtn">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL DETAIL TUGAS -->
+    <div class="modal-overlay" id="detailModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Detail Tugas</div>
+            </div>
+            <div class="modal-body">
+                <div class="detail-grid">
+                    <div class="detail-item" style="grid-column: span 2;">
+                        <span class="detail-label">Judul</span>
+                        <span class="detail-value" id="detailTitle">-</span>
+                    </div>
+                    
+                    <div class="detail-item" style="grid-column: span 2;">
+                        <span class="detail-label">Deskripsi</span>
+                        <span class="detail-value detail-value-span" id="detailDesc">-</span>
+                    </div>
+
+                    <div class="detail-item">
+                        <span class="detail-label">Kategori</span>
+                        <span class="detail-value" id="detailCategory">-</span>
+                    </div>
+
+                    <div class="detail-item">
+                        <span class="detail-label">Prioritas</span>
+                        <span class="detail-value" id="detailPriority">-</span>
+                    </div>
+
+                    <div class="detail-item">
+                        <span class="detail-label">Deadline</span>
+                        <span class="detail-value" id="detailDeadline">-</span>
+                    </div>
+
+                    <div class="detail-item">
+                        <span class="detail-label">Status</span>
+                        <span class="detail-value" id="detailStatus">-</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-hapus-modal" id="detailDeleteBtn" onclick="handleDeleteFromDetail()">Hapus</button>
+                <button type="button" class="btn-batal" onclick="closeDetailModal()">Tutup</button>
+                <button type="button" class="btn-simpan" id="detailEditBtn" onclick="handleEditFromDetail()">Edit</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL TAMBAH KATEGORI -->
+    <div class="modal-overlay" id="categoryModal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <div class="modal-title">Tambah Kategori Baru</div>
+            </div>
+            <form id="categoryForm" onsubmit="handleCategorySubmit(event)">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="categoryNameInput">Nama Kategori *</label>
+                        <input type="text" id="categoryNameInput" class="form-input" placeholder="Masukkan nama kategori" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-batal" onclick="closeCategoryModal()">Batal</button>
+                    <button type="submit" class="btn-simpan" id="categorySubmitBtn">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="./js/dashboard.js"></script>
+</body>
+</html>
