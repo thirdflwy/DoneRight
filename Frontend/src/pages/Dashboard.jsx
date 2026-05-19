@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 
 const BASE_URL = "http://localhost:5000/api";
 
@@ -37,22 +37,6 @@ export default function Dashboard({ token, user, onLogout, onNavigateReport, onN
   const [categorySubmitting, setCategorySubmitting] = useState(false);
   const [taskSubmitting, setTaskSubmitting] = useState(false);
 
-  // Fetch Data on Load
-  useEffect(() => {
-    fetchInitialData();
-  }, []);
-
-  const fetchInitialData = async () => {
-    setLoading(true);
-    try {
-      await Promise.all([fetchTasks(), fetchCategories()]);
-    } catch (err) {
-      console.error("Initial load error:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const fetchTasks = async () => {
     try {
       const res = await fetch(`${BASE_URL}/tasks`, {
@@ -81,16 +65,33 @@ export default function Dashboard({ token, user, onLogout, onNavigateReport, onN
     }
   };
 
-  // Checkbox Toggle Completion
-  const handleToggleCompleted = async (id, currentCompleted) => {
+  const fetchInitialData = async () => {
+    setLoading(true);
     try {
-      const res = await fetch(`${BASE_URL}/tasks/${id}/completed`, {
-        method: "PUT",
+      await Promise.all([fetchTasks(), fetchCategories()]);
+    } catch (err) {
+      console.error("Initial load error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch Data on Load
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchInitialData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Checkbox Toggle Completion
+  const handleToggleCompleted = async (id) => {
+    try {
+      const res = await fetch(`${BASE_URL}/tasks/toggle/${id}`, {
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ is_completed: !currentCompleted }),
       });
 
       if (res.ok) {
@@ -274,6 +275,10 @@ export default function Dashboard({ token, user, onLogout, onNavigateReport, onN
   .sort((a, b) => {
     if (sortBy === "deadline") {
       return new Date(a.deadline) - new Date(b.deadline);
+    }
+
+    if (sortBy === "newest") {
+      return new Date(b.created_at) - new Date(a.created_at);
     }
 
     const priorityOrder = {
@@ -475,6 +480,7 @@ export default function Dashboard({ token, user, onLogout, onNavigateReport, onN
             >
               <option value="deadline">Urutkan: Deadline</option>
               <option value="priority">Urutkan: Prioritas</option>
+              <option value="newest">Urutkan: Terbaru</option>
             </select>
           </div>
         </div>
@@ -496,14 +502,16 @@ export default function Dashboard({ token, user, onLogout, onNavigateReport, onN
         ) : viewMode === "list" ? (
           filteredTasks.map((task) => {
             const deadline = task.deadline ? new Date(task.deadline) : null;
-            const now = new Date();
-            const isOverdue = !task.is_completed && deadline && deadline < now;
 
             return (
               <div className="task-item" key={task.id_tasks}>
                 <div className="task-left">
                   <div className="task-title-row">
-                    <div className={`todo-checkbox ${task.is_completed ? "checked" : ""}`}
+                    <div
+                      className={`todo-checkbox ${task.is_completed ? "checked" : ""}`}
+                      onClick={() =>
+                        handleToggleCompleted(task.id_tasks)
+                      }
                     ></div>
 
                     <h3 className={`task-title ${task.is_completed ? "completed" : ""}`}>
@@ -601,7 +609,7 @@ export default function Dashboard({ token, user, onLogout, onNavigateReport, onN
                       <div
                         className={`todo-checkbox ${task.is_completed ? "checked" : ""}`}
                         onClick={() =>
-                          handleToggleCompleted(task.id_tasks, task.is_completed)
+                          handleToggleCompleted(task.id_tasks)
                         }
                       ></div>
 

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 
 const BASE_URL = "http://localhost:5000/api";
 
@@ -15,6 +15,17 @@ export default function Register({ onNavigateLogin }) {
     e.preventDefault();
     if (!username || !email || !password) {
       setErrorMsg("Semua kolom wajib diisi!");
+      return;
+    }
+
+    if (password.length < 8) {
+      setErrorMsg("Password harus minimal 8 karakter!");
+      return;
+    }
+
+    const hasSpecialChar = /[^a-zA-Z0-9]/.test(password);
+    if (!hasSpecialChar) {
+      setErrorMsg("Password harus mengandung minimal 1 karakter unik/spesial!");
       return;
     }
 
@@ -128,7 +139,7 @@ export default function Register({ onNavigateLogin }) {
                 type="password"
                 id="password"
                 className="form-input"
-                placeholder="Buat kata sandi minimal 6 karakter"
+                placeholder="Minimal 8 karakter dengan 1 karakter unik"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
