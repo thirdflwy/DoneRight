@@ -62,22 +62,37 @@ body {
 }
 
 .logo-icon {
-    width: 56px;
-    height: 56px;
-    background-color: var(--primary-color);
-    border-radius: 50%;
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
-    color: white;
-    font-size: 24px;
-    box-shadow: 0 8px 16px rgba(92, 62, 245, 0.25);
-    margin-bottom: 12px;
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  border-radius: 9999px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin: 0 auto 16px;
+
+  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
 }
 
-.logo-icon::before {
-    content: "✓";
-    font-weight: bold;
+.logo-inner {
+  width: 24px;
+  height: 24px;
+
+  border: 3px solid white;
+  border-radius: 9999px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.check-icon {
+  width: 16px;
+  height: 16px;
+  color: white;
+  align-items: center;
 }
 
 .auth-header h1 {
@@ -137,7 +152,7 @@ body {
 }
 
 .btn-primary {
-    width: 100%;
+    width: auto;
     padding: 12px 16px;
     background-color: var(--primary-color);
     color: white;
@@ -244,9 +259,9 @@ body {
 }
 
 .dashboard-container {
-    max-width: 900px;
+    max-width: 1280px;
     margin: 24px auto;
-    padding: 0 16px 40px;
+    padding: 0 24px 40px;
 }
 
 /* PROGRESS CARD banner */
@@ -308,7 +323,8 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    gap: 20px;
+    margin-bottom: 18px;
 }
 
 .board-title {
@@ -319,7 +335,9 @@ body {
 
 .btn-group-row {
     display: flex;
-    gap: 8px;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: nowrap;
 }
 
 .btn-secondary {
@@ -350,9 +368,9 @@ body {
 /* FILTER GRID */
 .filters-grid {
     display: grid;
-    grid-template-columns: 2fr 1fr 1fr 1fr;
-    gap: 12px;
-    margin-bottom: 8px;
+    grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr;
+    gap: 14px;
+    margin-top: 16px;
 }
 
 @media (max-width: 640px) {
@@ -380,9 +398,9 @@ body {
 /* TASK CARDS */
 .task-item {
     background-color: var(--card-bg);
-    border-radius: 12px;
+    border-radius: 16px;
     border: 1px solid var(--border-color);
-    padding: 20px;
+    padding: 18px 20px;
     margin-bottom: 12px;
     display: flex;
     justify-content: space-between;
@@ -403,8 +421,9 @@ body {
 
 .task-title {
     font-size: 16px;
-    font-weight: 600;
-    color: #1e293b;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
     margin-bottom: 4px;
     transition: all 0.2s;
 }
@@ -418,6 +437,8 @@ body {
     font-size: 14px;
     color: var(--text-muted);
     margin-bottom: 14px;
+    margin-top: 6px;
+    line-height: 1.5;
 }
 
 .task-badges {
@@ -429,10 +450,10 @@ body {
 .badge {
     display: inline-flex;
     align-items: center;
-    padding: 4px 10px;
-    border-radius: 20px;
+    padding: 5px 10px;
+    border-radius: 999px;
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 600;
     gap: 4px;
 }
 
@@ -731,6 +752,8 @@ body {
 .task-title-row {
     display: flex;
     align-items: center;
+    gap: 12px;
+    margin-bottom: 6px;
 }
 
 /* ADMIN DASHBOARD SPECIFIC STYLES */
@@ -1104,3 +1127,33 @@ body {
     fill: currentColor;
 }
 
+@media (max-width: 1024px) {
+    .filters-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .board-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .btn-group-row {
+        flex-wrap: wrap;
+    }
+}
+
+@media (max-width: 640px) {
+    .filters-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .task-item {
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .task-right {
+        width: 100%;
+        align-items: flex-start;
+    }
+}
